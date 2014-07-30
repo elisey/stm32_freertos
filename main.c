@@ -1,4 +1,6 @@
 #include "stm32f10x.h"
+#include "uart.h"
+
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
@@ -21,6 +23,17 @@ void vBlinker2(void *pvParameters) {
 	}
 }
 
+void vUartSender(void* pvParametrs)
+{
+	UART_Init();
+
+	while(1)
+	{
+		UART_SendString("This is vUartSender task\n");
+		vTaskDelay(1000);
+	}
+}
+
 int main(void)
 {
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
@@ -36,7 +49,14 @@ int main(void)
 					NULL,
 					tskIDLE_PRIORITY + 1,
 					NULL);
+
 	xTaskCreate(	vBlinker2,"Blinker2",
+					configMINIMAL_STACK_SIZE,
+					NULL,
+					tskIDLE_PRIORITY + 1,
+					NULL);
+
+	xTaskCreate(	vUartSender,"UartSender",
 					configMINIMAL_STACK_SIZE,
 					NULL,
 					tskIDLE_PRIORITY + 1,
