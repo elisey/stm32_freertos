@@ -5,21 +5,27 @@
 #include "task.h"
 #include "queue.h"
 
-void vBlinker(void *pvParameters) {
-	while (1) {
-		GPIO_WriteBit(GPIOC, GPIO_Pin_9, Bit_RESET);
-		vTaskDelay(480);
-		GPIO_WriteBit(GPIOC, GPIO_Pin_9, Bit_SET);
-		vTaskDelay(20);
-	}
-}
+typedef struct {
+	uint16_t timeOn;
+	uint16_t timeOff;
+	GPIO_TypeDef * gpio;
+	uint16_t pin;
+}ledTiming_t;
 
-void vBlinker2(void *pvParameters) {
+void vBlinker(void *pvParameters)
+{
+	GPIO_InitTypeDef gpio;
+
+	gpio.GPIO_Mode = GPIO_Mode_Out_PP;
+	gpio.GPIO_Pin = ((ledTiming_t*)pvParameters)->pin;
+	gpio.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(((ledTiming_t*)pvParameters)->gpio, &gpio);
+
 	while (1) {
-		GPIO_WriteBit(GPIOC, GPIO_Pin_8, Bit_RESET);
-		vTaskDelay(460);
-		GPIO_WriteBit(GPIOC, GPIO_Pin_8, Bit_SET);
-		vTaskDelay(20);
+		GPIO_WriteBit(((ledTiming_t*)pvParameters)->gpio, ((ledTiming_t*)pvParameters)->pin, Bit_RESET);
+		vTaskDelay(((ledTiming_t*)pvParameters)->timeOff);
+		GPIO_WriteBit(((ledTiming_t*)pvParameters)->gpio, ((ledTiming_t*)pvParameters)->pin, Bit_SET);
+		vTaskDelay(((ledTiming_t*)pvParameters)->timeOn);
 	}
 }
 
@@ -27,32 +33,41 @@ void vUartSender(void* pvParametrs)
 {
 	UART_Init();
 
+	portTickType lastWakeTime;
+	lastWakeTime = xTaskGetTickCount();
 	while(1)
 	{
+		vTaskDelayUntil(&lastWakeTime, 500);
 		UART_SendString("This is vUartSender task\n");
-		vTaskDelay(1000);
 	}
 }
 
 int main(void)
 {
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
-	GPIO_InitTypeDef gpio;
 
-	gpio.GPIO_Mode = GPIO_Mode_Out_PP;
-	gpio.GPIO_Pin = GPIO_Pin_8 | GPIO_Pin_9;
-	gpio.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_Init(GPIOC, &gpio);
+	ledTiming_t* ptrLedTiming = pvPortMalloc(sizeof(ledTiming_t));
+	ptrLedTiming->gpio = GPIOC;
+	ptrLedTiming->pin = GPIO_Pin_8;
+	ptrLedTiming->timeOff = 480;
+	ptrLedTiming->timeOn = 20;
 
-	xTaskCreate(	vBlinker,"Blinker",
+	xTaskCreate(	vBlinker,
+					"Blinker",
 					configMINIMAL_STACK_SIZE,
-					NULL,
+					(void*)ptrLedTiming,
 					tskIDLE_PRIORITY + 1,
 					NULL);
 
-	xTaskCreate(	vBlinker2,"Blinker2",
+	ledTiming_t* ptrLedTiming2 = pvPortMalloc(sizeof(ledTiming_t));
+	ptrLedTiming2->gpio = GPIOC;
+	ptrLedTiming2->pin = GPIO_Pin_9;
+	ptrLedTiming2->timeOff = 460;
+	ptrLedTiming2->timeOn = 20;
+
+	xTaskCreate(	vBlinker,"Blinker2",
 					configMINIMAL_STACK_SIZE,
-					NULL,
+					(void*)ptrLedTiming2,
 					tskIDLE_PRIORITY + 1,
 					NULL);
 
