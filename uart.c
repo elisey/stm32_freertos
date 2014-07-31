@@ -10,8 +10,11 @@ typedef struct {
 	int rdIdx;
 } sRingBuf_t;
 
+void prv_SendChar(uint8_t data);
+
 #ifdef USE_FREERTOS
 xSemaphoreHandle xRxSemaphore;
+xSemaphoreHandle xTxSemaphore;
 #endif
 sRingBuf_t sTxRingBuf, sRxRingBuf;
 
@@ -48,26 +51,28 @@ void UART_Init(void)
 
 #ifdef USE_FREERTOS
 	xRxSemaphore = xSemaphoreCreateCounting(10,0);
+	xTxSemaphore = xSemaphoreCreateBinary();
+	xSemaphoreGive(xTxSemaphore);
 #endif
 }
 
 void UART_SendChar(uint8_t data)
 {
-	sTxRingBuf.data[sTxRingBuf.wrIdx++] = data;
-	if (sTxRingBuf.wrIdx >= uartSIZE_OF_RING_BUFFER)	{
-		sTxRingBuf.wrIdx = 0;
-	}
-	USART_ITConfig(USARTx, USART_IT_TXE, ENABLE);
+	xSemaphoreTake(xTxSemaphore, portMAX_DELAY);
+	prv_SendChar(data);
+	xSemaphoreGive(xTxSemaphore);
 }
 
 void UART_SendString(const char *str)
 {
+	xSemaphoreTake(xTxSemaphore, portMAX_DELAY);
 	int i = 0;
 	while (str[i] != 0)
 	{
-		UART_SendChar(str[i]);
+		prv_SendChar(str[i]);
 		i++;
 	}
+	xSemaphoreGive(xTxSemaphore);
 }
 
 int UART_GetChar()
@@ -92,6 +97,15 @@ int UART_GetCharBlocking()
 	return UART_GetChar();
 }
 #endif
+
+void prv_SendChar(uint8_t data)
+{
+	sTxRingBuf.data[sTxRingBuf.wrIdx++] = data;
+	if (sTxRingBuf.wrIdx >= uartSIZE_OF_RING_BUFFER)	{
+		sTxRingBuf.wrIdx = 0;
+	}
+	USART_ITConfig(USARTx, USART_IT_TXE, ENABLE);
+}
 
 void USARTx_IRQHandler (void)
 {

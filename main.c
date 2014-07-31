@@ -29,21 +29,42 @@ void vBlinker(void *pvParameters)
 	}
 }
 
-void vUartSender(void* pvParametrs)
+void vUartSender1(void* pvParametrs)
 {
-	UART_Init();
+	portTickType lastWakeTime;
+	lastWakeTime = xTaskGetTickCount();
+	while(1)
+	{
+		vTaskDelayUntil(&lastWakeTime, 700);
+		UART_SendString("=This is UART sender task 1=\n");
+	}
+}
 
+void vUartSender2(void* pvParametrs)
+{
 	portTickType lastWakeTime;
 	lastWakeTime = xTaskGetTickCount();
 	while(1)
 	{
 		vTaskDelayUntil(&lastWakeTime, 500);
-		UART_SendString("This is vUartSender task\n");
+		UART_SendString("=This is UART sender task 2=\n");
+	}
+}
+
+void vUartSender3(void* pvParametrs)
+{
+	portTickType lastWakeTime;
+	lastWakeTime = xTaskGetTickCount();
+	while(1)
+	{
+		vTaskDelayUntil(&lastWakeTime, 400);
+		UART_SendString("=This is UART sender task 3=\n");
 	}
 }
 
 int main(void)
 {
+	UART_Init();
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
 
 	ledTiming_t* ptrLedTiming = pvPortMalloc(sizeof(ledTiming_t));
@@ -71,7 +92,17 @@ int main(void)
 					tskIDLE_PRIORITY + 1,
 					NULL);
 
-	xTaskCreate(	vUartSender,"UartSender",
+	xTaskCreate(	vUartSender1,"UartSender",
+					configMINIMAL_STACK_SIZE,
+					NULL,
+					tskIDLE_PRIORITY + 1,
+					NULL);
+	xTaskCreate(	vUartSender2,"UartSender",
+					configMINIMAL_STACK_SIZE,
+					NULL,
+					tskIDLE_PRIORITY + 1,
+					NULL);
+	xTaskCreate(	vUartSender3,"UartSender",
 					configMINIMAL_STACK_SIZE,
 					NULL,
 					tskIDLE_PRIORITY + 1,
