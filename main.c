@@ -1,6 +1,6 @@
 #include "stm32f10x.h"
 #include "uart.h"
-
+#include "microrl_func.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
@@ -29,38 +29,6 @@ void vBlinker(void *pvParameters)
 	}
 }
 
-void vUartSender1(void* pvParametrs)
-{
-	portTickType lastWakeTime;
-	lastWakeTime = xTaskGetTickCount();
-	while(1)
-	{
-		vTaskDelayUntil(&lastWakeTime, 700);
-		UART_SendString("=This is UART sender task 1=\n");
-	}
-}
-
-void vUartSender2(void* pvParametrs)
-{
-	portTickType lastWakeTime;
-	lastWakeTime = xTaskGetTickCount();
-	while(1)
-	{
-		vTaskDelayUntil(&lastWakeTime, 500);
-		UART_SendString("=This is UART sender task 2=\n");
-	}
-}
-
-void vUartSender3(void* pvParametrs)
-{
-	portTickType lastWakeTime;
-	lastWakeTime = xTaskGetTickCount();
-	while(1)
-	{
-		vTaskDelayUntil(&lastWakeTime, 400);
-		UART_SendString("=This is UART sender task 3=\n");
-	}
-}
 
 int main(void)
 {
@@ -92,18 +60,8 @@ int main(void)
 					tskIDLE_PRIORITY + 1,
 					NULL);
 
-	xTaskCreate(	vUartSender1,"UartSender",
-					configMINIMAL_STACK_SIZE,
-					NULL,
-					tskIDLE_PRIORITY + 1,
-					NULL);
-	xTaskCreate(	vUartSender2,"UartSender",
-					configMINIMAL_STACK_SIZE,
-					NULL,
-					tskIDLE_PRIORITY + 1,
-					NULL);
-	xTaskCreate(	vUartSender3,"UartSender",
-					configMINIMAL_STACK_SIZE,
+	xTaskCreate(	microrl_run,"microrl",
+					300,
 					NULL,
 					tskIDLE_PRIORITY + 1,
 					NULL);
