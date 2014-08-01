@@ -13,7 +13,9 @@ static int prv_execute(int argc, const char * const * argv);
 #ifdef _USE_COMPLETE
 static char ** prv_complet (int argc, const char * const * argv);
 #endif
+#ifdef _USE_CTLR_C
 static void prv_sigint (void);
+#endif
 static int prv_about(int argc, const char * const * argv);
 static int prv_help(int argc, const char * const * argv);
 static int prv_clear(int argc, const char * const * argv);
@@ -93,14 +95,16 @@ static char ** prv_complet (int argc, const char * const * argv)
 }
 #endif
 
+#ifdef _USE_CTLR_C
 static void prv_sigint (void)
 {
 	NVIC_SystemReset();
 }
-
+#endif
 static int prv_about(int argc, const char * const * argv)
 {
-	microrl_sendString("Microrl based terminal");
+	microrl_sendString("Microrl based terminal. Ver. ");
+	microrl_sendString(MICRORL_LIB_VER);
 	microrl_sendString(ENDL);
 	return 0;
 }

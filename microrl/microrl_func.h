@@ -3,6 +3,7 @@
 
 #include "microrl.h"
 #include "uart.h"
+
 #define microrlNUM_OF_FUNC	10
 
 #define microrl_getChar			UART_GetCharBlocking
