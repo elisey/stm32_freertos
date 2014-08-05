@@ -38,10 +38,10 @@ void microrl_run(void *pvParameters)
 	}
 }
 
-void microrl_registerExecuteFunc(exFunc_t func)
+void microrl_registerExecuteFunc(exFunc_t *func)
 {
 	assert_param(exFuncsIdx < microrlNUM_OF_FUNC);
-	exFuncs[exFuncsIdx++] = func;
+	exFuncs[exFuncsIdx++] = *func;
 }
 
 static void prv_registerBaseFuncs()
@@ -50,15 +50,15 @@ static void prv_registerBaseFuncs()
 
 	func.name = "about";
 	func.func = prv_about;
-	microrl_registerExecuteFunc(func);
+	microrl_registerExecuteFunc(&func);
 
 	func.name = "help";
 	func.func = prv_help;
-	microrl_registerExecuteFunc(func);
+	microrl_registerExecuteFunc(&func);
 
 	func.name = "clear";
 	func.func = prv_clear;
-	microrl_registerExecuteFunc(func);
+	microrl_registerExecuteFunc(&func);
 }
 
 static int prv_execute(int argc, const char * const * argv)
