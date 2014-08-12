@@ -11,10 +11,11 @@
 
 typedef struct {
 	const char * name;
+	const char * help;
 	int (*func)(int, const char* const*);
 } exFunc_t;
 
 void microrl_run(void *pvParameters);
-void microrl_registerExecuteFunc(int (*func)(int, const char* const*), const char* name);
+void microrl_registerExecuteFunc(int (*func)(int, const char* const*), const char* name, const char* help);
 
 #endif

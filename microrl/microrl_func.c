@@ -38,21 +38,22 @@ void microrl_run(void *pvParameters)
 	}
 }
 
-void microrl_registerExecuteFunc(int (*func)(int, const char* const*), const char* name)
+void microrl_registerExecuteFunc(int (*func)(int, const char* const*), const char* name, const char* help)
 {
 	assert_param(exFuncsIdx < microrlNUM_OF_FUNC);
 
 	exFuncs[exFuncsIdx].func = func;
 	exFuncs[exFuncsIdx].name = name;
+	exFuncs[exFuncsIdx].help = help;
 
 	exFuncsIdx++;
 }
 
 static void prv_registerBaseFuncs()
 {
-	microrl_registerExecuteFunc(prv_about, "about");
-	microrl_registerExecuteFunc(prv_help, "help");
-	microrl_registerExecuteFunc(prv_clear, "clear");
+	microrl_registerExecuteFunc(prv_about, "about", NULL);
+	microrl_registerExecuteFunc(prv_help, "help", "This function allows to view the available options and their descriptions.");
+	microrl_registerExecuteFunc(prv_clear, "clear", "This function clears the screen.");
 }
 
 static int prv_execute(int argc, const char * const * argv)
@@ -105,16 +106,48 @@ static int prv_about(int argc, const char * const * argv)
 
 static int prv_help(int argc, const char * const * argv)
 {
-	microrl_sendString("Available commands:");
-	microrl_sendString(ENDL);
+	if (argc == 0)	{
+		int i;
+		microrl_sendString("type \"help\" <command> for more details.");
+		microrl_sendString(ENDL);
+		microrl_sendString(ENDL);
+		microrl_sendString("Available commands:");
+		microrl_sendString(ENDL);
 
-	int i;
-	for (i = 0; i < exFuncsIdx; ++i) {
-		microrl_sendString(exFuncs[i].name);
-		microrl_sendString(" ");
+		for (i = 0; i < exFuncsIdx; ++i) {
+			microrl_sendString(exFuncs[i].name);
+			microrl_sendString(" ");
+		}
+		microrl_sendString(ENDL);
+		return 0;
 	}
-	microrl_sendString(ENDL);
-	return 0;
+
+	if(argc == 1)	{
+		int i;
+		for (i = 0; i < exFuncsIdx; ++i) {
+			if (strcmp(argv[0], exFuncs[i].name) == 0)	{
+				if (exFuncs[i].help != NULL)	{
+					microrl_sendString(exFuncs[i].help);
+					microrl_sendString(ENDL);
+					return 0;
+				}
+				else	{
+					microrl_sendString("Help is not available for this command.");
+					microrl_sendString(ENDL);
+					return (-1);
+				}
+			}
+		}
+		microrl_sendString("Command not found.");
+		microrl_sendString(ENDL);
+		return (-1);
+	}
+	else {
+		microrl_sendString("Help is available only for high-level commands. It isn't available for subcommands.");
+		microrl_sendString(ENDL);
+		return (-1);
+	}
+
 }
 
 static int prv_clear(int argc, const char * const * argv)
