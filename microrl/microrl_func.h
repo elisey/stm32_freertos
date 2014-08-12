@@ -15,6 +15,6 @@ typedef struct {
 } exFunc_t;
 
 void microrl_run(void *pvParameters);
-void microrl_registerExecuteFunc(exFunc_t *func);
+void microrl_registerExecuteFunc(int (*func)(int, const char* const*), const char* name);
 
 #endif
