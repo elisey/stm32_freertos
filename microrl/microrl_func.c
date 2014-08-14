@@ -1,17 +1,20 @@
-﻿#include <string.h>
+﻿#include <string.h>				// for strcmp, strstr
+#include "uart.h"				// for UART_GetCharBlocking, UART_SendString
 #include "microrl_func.h"
-#include "cmsis/core_cm3.h"
+#include "cmsis/core_cm3.h"		// for NVIC_SystemReset
+
+//Define this macros with correct write/read terminal functions
+#define microrl_getChar			UART_GetCharBlocking
+#define microrl_sendString		UART_SendString
 
 terminalFunc_t terminalFuncArray[microrlNUM_OF_TERMINAL_FUNC];
-int terminalFuncArrayIdx = 0;
+int terminalFuncArrayIndex = 0;
 
-microrl_t rl;
+microrl_t rl;					// Main terminal object
 microrl_t * prl = &rl;
 
 static void prv_registerBasicTerminalFuncs();
-static void prv_sendStringNewLine(const char *str);
-static void prv_sendNewLine();
-static int prv_getFuncIndex(const char * name);
+static int prv_getFuncArrayIndex(const char * name);
 static void prv_printMainHelp();
 static void prv_printTerminalFuncHelp(const char *name);
 
@@ -52,13 +55,29 @@ void microrl_run(void *pvParameters)
 
 void microrl_registerExecuteFunc(int (*func)(int, const char* const*), const char* name, const char* help)
 {
-	assert_param(terminalFuncArrayIdx < microrlNUM_OF_TERMINAL_FUNC);
+	assert_param(terminalFuncArrayIndex < microrlNUM_OF_TERMINAL_FUNC);
 
-	terminalFuncArray[terminalFuncArrayIdx].func = func;
-	terminalFuncArray[terminalFuncArrayIdx].name = name;
-	terminalFuncArray[terminalFuncArrayIdx].help = help;
+	terminalFuncArray[terminalFuncArrayIndex].func = func;
+	terminalFuncArray[terminalFuncArrayIndex].name = name;
+	terminalFuncArray[terminalFuncArrayIndex].help = help;
 
-	terminalFuncArrayIdx++;
+	terminalFuncArrayIndex++;
+}
+
+void microrl_printString(const char *str)
+{
+	microrl_sendString(str);
+}
+
+void microrl_printStringWithEndl(const char *str)
+{
+	microrl_sendString(str);
+	microrl_sendString(ENDL);
+}
+
+void microrl_printEndl()
+{
+	microrl_sendString(ENDL);
 }
 
 static void prv_registerBasicTerminalFuncs()
@@ -68,21 +87,10 @@ static void prv_registerBasicTerminalFuncs()
 	microrl_registerExecuteFunc(prv_TerminalFunc_clear, "clear", "This function clears the screen.");
 }
 
-static void prv_sendStringNewLine(const char *str)
-{
-	microrl_sendString(str);
-	microrl_sendString(ENDL);
-}
-
-static void prv_sendNewLine()
-{
-	microrl_sendString(ENDL);
-}
-
-static int prv_getFuncIndex(const char * name)
+static int prv_getFuncArrayIndex(const char * name)
 {
 	int i;
-	for (i = 0; i < terminalFuncArrayIdx; ++i) {
+	for (i = 0; i < terminalFuncArrayIndex; ++i) {
 		if (strcmp(name, terminalFuncArray[i].name) == 0)	{
 			return i;
 		}
@@ -94,15 +102,16 @@ static int prv_execute(int argc, const char * const * argv)
 {
 	int funcIndex;
 
-	funcIndex = prv_getFuncIndex(argv[0]);
+	funcIndex = prv_getFuncArrayIndex(argv[0]);
 	if (funcIndex == (-1))	{
-		prv_sendStringNewLine("Unknown command. Type \"help\" to see available commands");
+		microrl_printStringWithEndl("Unknown command. Type \"help\" to see available commands");
 		return (-1);
 	}
 	return terminalFuncArray[funcIndex].func(--argc, ++argv);
 }
 
 #ifdef _USE_COMPLETE
+//TODO simplify this. Quite difficult.
 static char ** prv_complet (int argc, const char * const * argv)
 {
 	static char * compl_world [microrlNUM_OF_TERMINAL_FUNC + 1];
@@ -110,8 +119,8 @@ static char ** prv_complet (int argc, const char * const * argv)
 	compl_world[0] = NULL;
 	if (argc == 1)	{
 		char * bit = (char*)argv [argc-1];
-		for (i = 0; i < terminalFuncArrayIdx; i++) {
-			if (strstr(terminalFuncArray[i].name, bit) == terminalFuncArray[i].name) {	//FIXME попробовать использовать prv_getFuncIndex
+		for (i = 0; i < terminalFuncArrayIndex; i++) {
+			if (strstr(terminalFuncArray[i].name, bit) == terminalFuncArray[i].name) {
 				compl_world [j++] = (char*)(terminalFuncArray[i].name);
 			}
 		}
@@ -130,8 +139,8 @@ static void prv_sigint (void)
 
 static int prv_TerminalFunc_about(int argc, const char * const * argv)
 {
-	microrl_sendString("Microrl based terminal. Ver. ");
-	prv_sendStringNewLine(MICRORL_LIB_VER);
+	microrl_printString("Microrl based terminal. Ver. ");
+	microrl_printStringWithEndl(MICRORL_LIB_VER);
 	return 0;
 }
 
@@ -146,7 +155,7 @@ static int prv_TerminalFunc_help(int argc, const char * const * argv)
 		prv_printTerminalFuncHelp(argv[0]);
 		break;
 	default:
-		prv_sendStringNewLine("Help is available only for high-level commands. It isn't available for subcommands.");
+		microrl_printStringWithEndl("Help is available only for high-level commands. It isn't available for subcommands.");
 		break;
 	}
 	return 0;
@@ -154,35 +163,35 @@ static int prv_TerminalFunc_help(int argc, const char * const * argv)
 
 static void prv_printMainHelp()
 {
-	prv_sendStringNewLine("type \"help\" <command> for more details.");
-	prv_sendNewLine();
-	prv_sendStringNewLine("Available commands:");
+	microrl_printStringWithEndl("type \"help\" <command> for more details.");
+	microrl_printEndl();
+	microrl_printStringWithEndl("Available commands:");
 	int i;
-	for (i = 0; i < terminalFuncArrayIdx; ++i) {
-		microrl_sendString(terminalFuncArray[i].name);
-		microrl_sendString(" ");
+	for (i = 0; i < terminalFuncArrayIndex; ++i) {
+		microrl_printString(terminalFuncArray[i].name);
+		microrl_printString(" ");
 	}
-	prv_sendNewLine();
+	microrl_printEndl();
 }
 
 static void prv_printTerminalFuncHelp(const char *name)
 {
-	int funcIndex = prv_getFuncIndex(name);
+	int funcIndex = prv_getFuncArrayIndex(name);
 	if (funcIndex == (-1))	{
-		prv_sendStringNewLine("Command not found.");
+		microrl_printStringWithEndl("Command not found.");
 		return;
 	}
 	if (terminalFuncArray[funcIndex].help != NULL)	{
-		prv_sendStringNewLine(terminalFuncArray[funcIndex].help);
+		microrl_printStringWithEndl(terminalFuncArray[funcIndex].help);
 	}
 	else	{
-		prv_sendStringNewLine("Help is not available for this command.");
+		microrl_printStringWithEndl("Help is not available for this command.");
 	}
 }
 
 static int prv_TerminalFunc_clear(int argc, const char * const * argv)
 {
-	microrl_sendString ("\033[2J");    // ESC seq for clear entire screen
-	microrl_sendString ("\033[H");     // ESC seq for move cursor at left-top corner
+	microrl_printString ("\033[2J");    // ESC seq for clear entire screen
+	microrl_printString ("\033[H");     // ESC seq for move cursor at left-top corner
 	return 0;
 }
