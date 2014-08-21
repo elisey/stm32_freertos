@@ -1,9 +1,6 @@
 ﻿#ifndef MICRORL_FUNC_H_
 #define MICRORL_FUNC_H_
 
-#include "microrl.h"
-
-
 #define microrlNUM_OF_TERMINAL_FUNC	10
 
 typedef struct {
@@ -12,7 +9,8 @@ typedef struct {
 	int (*func)(int, const char* const*);
 } terminalFunc_t;
 
-void microrl_run(void *pvParameters);
+void microrl_terminalInit();
+void microrl_terminalProcess();
 void microrl_registerExecuteFunc(int (*func)(int, const char* const*), const char* name, const char* help);
 
 void microrl_printString(const char *str);

@@ -12,6 +12,9 @@ typedef struct {
 	uint16_t pin;
 }ledTiming_t;
 
+void vBlinker(void *pvParameters);
+void microrl_run(void *pvParameters);
+
 void vBlinker(void *pvParameters)
 {
 	GPIO_InitTypeDef gpio;
@@ -29,6 +32,14 @@ void vBlinker(void *pvParameters)
 	}
 }
 
+void microrl_run(void *pvParameters)
+{
+	microrl_terminalInit();
+	while(1)
+	{
+		microrl_terminalProcess();
+	}
+}
 
 int main(void)
 {

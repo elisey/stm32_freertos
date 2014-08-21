@@ -1,4 +1,5 @@
 ﻿#include <string.h>				// for strcmp, strstr
+#include "microrl.h"
 #include "uart.h"				// for UART_GetCharBlocking, UART_SendString
 #include "microrl_func.h"
 #include "cmsis/core_cm3.h"		// for NVIC_SystemReset
@@ -31,9 +32,7 @@ static int prv_TerminalFunc_about(int argc, const char * const * argv);
 static int prv_TerminalFunc_help(int argc, const char * const * argv);
 static int prv_TerminalFunc_clear(int argc, const char * const * argv);
 
-
-
-void microrl_run(void *pvParameters)
+void microrl_terminalInit()
 {
 	prv_registerBasicTerminalFuncs();
 
@@ -47,10 +46,10 @@ void microrl_run(void *pvParameters)
 	#ifdef _USE_CTLR_C
 	microrl_set_sigint_callback (prl, prv_sigint);
 	#endif
-
-	while (1) {
-		microrl_insert_char (prl, microrl_getChar());
-	}
+}
+void microrl_terminalProcess()
+{
+	microrl_insert_char (prl, microrl_getChar());
 }
 
 void microrl_registerExecuteFunc(int (*func)(int, const char* const*), const char* name, const char* help)
